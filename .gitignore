@@ -1,0 +1,34 @@
+[Oo]bj
+[Rr]elease
+[Dd]ebug
+[Nn]ativeBinaries
+packages
+*.exe
+*.pdb
+*.xml
+*.dll
+*.user
+*.suo
+*.[Cc]ache
+*.bak
+*.ncb
+*.log 
+*.DS_Store
+[Tt]humbs.db 
+_ReSharper.*
+*.resharper
+Ankh.NoLoad
+
+#OS junk files
+[Tt]humbs.db
+*.DS_Store
+
+*.userprefs
+*.pidb
+
+# NuGet Packages Directory
+packages
+*.nupkg
+
+# Allow NuGet specific exes and dlls
+!.nuget/Microsoft.Build.dll
