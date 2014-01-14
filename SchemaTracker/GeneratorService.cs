@@ -12,6 +12,7 @@ namespace SchemaTracker
         {
             try
             {
+                Log.Info("Generating class for {0}", app.Name);
                 var gen = CreateNewGenerator(schemaDirectory, app.SchemaName, json);
                 gen.GenerateClasses();
             }

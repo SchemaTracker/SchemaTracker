@@ -10,15 +10,15 @@
 
         public string RemoteRepoUrl { get; private set; }
 
-        public string LocalRepoPath { get; private set; }
+        public string LocalRepoName { get; private set; }
 
-        public GitInfo(string userName, string password, string email, string remoteRepoUrl, string localRepoPath)
+        public GitInfo(string userName, string password, string email, string remoteRepoUrl, string localRepoName)
         {
             this.UserName = userName;
             this.Password = password;
             this.Email = email;
             this.RemoteRepoUrl = remoteRepoUrl;
-            this.LocalRepoPath = localRepoPath;
+            this.LocalRepoName = localRepoName;
         }
     }
 }

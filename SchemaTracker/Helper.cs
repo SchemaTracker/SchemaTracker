@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 
 namespace SchemaTracker
 {
@@ -14,5 +15,10 @@ namespace SchemaTracker
             new SchemaService.EconApp(841, "Portal 2 Beta", "Portal2Beta"),
             new SchemaService.EconApp(205790, "Dota 2 (Beta) Test","Dota2BetaTest")
         };
+
+        public static string CombinePaths(bool combine, params string[] paths)
+        {
+            return combine ? Path.Combine(Path.GetTempPath(), Path.Combine(paths)) : Path.Combine(paths);
+        }
     }
 }

@@ -49,13 +49,15 @@ namespace SchemaTracker
 
         private bool IsFatal { get; set; }
 
+        private bool UseTempPath { get; set; }
+
         private List<EconApp> ClientSchemaUrls { get; set; }
 
         private GitInfo GitInfo { get; set; }
 
         private readonly BackgroundWorker worker;
 
-        public SchemaService(string apiKey, GitInfo gitInfo, HashSet<EconApp> apps = null, int checkInterval = 900000, string language = "en_US")
+        public SchemaService(string apiKey, GitInfo gitInfo, HashSet<EconApp> apps = null, int checkInterval = 900000, string language = "en_US", bool useTempPath = true)
         {
             if (string.IsNullOrEmpty(apiKey))
             {
@@ -77,15 +79,16 @@ namespace SchemaTracker
             this.Apps = apps;
             this.Language = language;
             this.CheckInterval = checkInterval;
+            this.UseTempPath = useTempPath;
 
             worker = new BackgroundWorker() { WorkerSupportsCancellation = true };
             worker.DoWork += CheckSchemas;
             worker.RunWorkerCompleted += WorkerCompleted;
             try
             {
-                CacheDirectory = Path.Combine(gitInfo.LocalRepoPath, "cache");
+                CacheDirectory = Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName, "cache");
                 if (!Directory.Exists(CacheDirectory)) { Directory.CreateDirectory(CacheDirectory); }
-                SchemaDirectory = Path.Combine(gitInfo.LocalRepoPath, "SteamEcon", "Schema");
+                SchemaDirectory = Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName, "SteamEcon", "Schema");
                 if (!Directory.Exists(SchemaDirectory)) { Directory.CreateDirectory(SchemaDirectory); }
             }
             catch (Exception ex)
@@ -104,8 +107,10 @@ namespace SchemaTracker
             Log.Info("BackgroundWorker Running");
             while (!worker.CancellationPending)
             {
+                Clone(GitInfo);
                 DownloadSchemas();
                 CommitAnyChanges(GitInfo);
+                Log.Info("Waiting for next check");
                 Thread.Sleep(CheckInterval);
             }
         }
@@ -268,7 +273,6 @@ namespace SchemaTracker
             updates.Add(UpdateType.SchemaClass, new List<string>());
             foreach (var file in files)
             {
-                Console.WriteLine(Path.GetFileName(file));
                 KeyValuePair<EconApp, UpdateType> appInfo;
                 if (ReverseAppMap.TryGetValue(Path.GetFileName(file), out appInfo))
                 {
@@ -366,26 +370,25 @@ namespace SchemaTracker
         {
             try
             {
+                Log.Info("Creating New Repo");
                 var creds = new UsernamePasswordCredentialsProvider(gitInfo.UserName, gitInfo.Password);
                 Git.CloneRepository()
                     .SetURI(SteamEconTemplate)
-                    .SetDirectory(gitInfo.LocalRepoPath)
+                    .SetDirectory(Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName))
                     .Call();
-                Git newRepo = Git.Open(gitInfo.LocalRepoPath);
-                StoredConfig config = ((FileBasedConfig)newRepo.GetRepository().GetConfig());
-                RemoteConfig remote = new RemoteConfig(config, "origin");
+                Git newRepo = Git.Open(Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName));
+                StoredConfig config = newRepo.GetRepository().GetConfig();
+                var remote = new RemoteConfig(config, "origin");
                 remote.RemoveURI(new URIish(SteamEconTemplate));
                 config.SetString("remote", "origin", "fetch", "+refs/*:refs/*");
-                //config.SetString("remote", "origin", "push", "+refs/*:refs/*");
                 remote.AddURI(new URIish(gitInfo.RemoteRepoUrl));
                 remote.Update(config);
                 config.Save();
-                var committer = new PersonIdent(gitInfo.UserName, gitInfo.Email);
-                string message = "Initial commit.";
                 newRepo.Push().SetCredentialsProvider(creds).Call();
                 newRepo.GetRepository().Close();
                 newRepo.GetRepository().ObjectDatabase.Close();
                 newRepo = null;
+                Log.Info("Done Creating New repo");
             }
             catch (GitException gex)
             {
@@ -393,17 +396,17 @@ namespace SchemaTracker
             }
         }
 
-        internal void CommitAnyChanges(GitInfo gitInfo)
+        internal void Clone(GitInfo gitInfo)
         {
             var creds = new UsernamePasswordCredentialsProvider(gitInfo.UserName, gitInfo.Password);
-            if (!Directory.Exists(Path.Combine(gitInfo.LocalRepoPath, ".git")))
+            if (!Directory.Exists(Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName, ".git")))
             {
                 Log.Info("Cloning repo from {0}", GitInfo.RemoteRepoUrl);
                 try
                 {
                     Git.CloneRepository()
                         .SetURI(gitInfo.RemoteRepoUrl)
-                        .SetDirectory(gitInfo.LocalRepoPath)
+                        .SetDirectory(Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName))
                         .SetCredentialsProvider(creds)
                         .Call();
                 }
@@ -412,14 +415,22 @@ namespace SchemaTracker
                     Log.Error(gex);
                 }
             }
+        }
+
+        internal void CommitAnyChanges(GitInfo gitInfo)
+        {
+            var creds = new UsernamePasswordCredentialsProvider(gitInfo.UserName, gitInfo.Password);
             try
             {
-                Git repo = Git.Open(gitInfo.LocalRepoPath);
+                Git repo = Git.Open(gitInfo.LocalRepoName);
                 string message = string.Empty;
                 if (ProcessGitStatus(repo, out message))
                 {
+                    Log.Info("Committing");
                     var committer = new PersonIdent(gitInfo.UserName, gitInfo.Email);
                     repo.Commit().SetMessage(message).SetAuthor(committer).SetCommitter(committer).Call();
+
+                    Log.Info("Fetch, Rebase, Push");
 
                     repo.Fetch().Call();
                     repo.Rebase().SetUpstream("FETCH_HEAD").Call();
