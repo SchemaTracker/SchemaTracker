@@ -422,7 +422,7 @@ namespace SchemaTracker
             var creds = new UsernamePasswordCredentialsProvider(gitInfo.UserName, gitInfo.Password);
             try
             {
-                Git repo = Git.Open(gitInfo.LocalRepoName);
+                Git repo = Git.Open(Helper.CombinePaths(UseTempPath, gitInfo.LocalRepoName));
                 string message = string.Empty;
                 if (ProcessGitStatus(repo, out message))
                 {
