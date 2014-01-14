@@ -69,7 +69,7 @@ namespace Xamasoft.JsonClassGenerator.CodeWriters
                     sw.WriteLine("// " + line);
                 }
                 sw.WriteLine();
-                sw.WriteLine("using System;");
+                //sw.WriteLine("using System;");
                 sw.WriteLine("using System.Collections.Generic;");
                 if (ShouldApplyNoPruneAttribute(config) || ShouldApplyNoRenamingAttribute(config))
                     sw.WriteLine("using System.Reflection;");
@@ -105,7 +105,7 @@ namespace Xamasoft.JsonClassGenerator.CodeWriters
             sw.WriteLine();
             sw.WriteLine("namespace {0}", root && !config.UseNestedClasses ? config.Namespace : (config.SecondaryNamespace ?? config.Namespace));
             sw.WriteLine("{");
-            sw.WriteLine();
+            //sw.WriteLine();
         }
 
         public void WriteNamespaceEnd(IJsonClassGeneratorConfig config, TextWriter sw, bool root)
@@ -173,7 +173,7 @@ namespace Xamasoft.JsonClassGenerator.CodeWriters
             if (!config.UseNestedClasses)
                 sw.WriteLine("    }");
 
-            sw.WriteLine();
+            //sw.WriteLine();
 
 
         }

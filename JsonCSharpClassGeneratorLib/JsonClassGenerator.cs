@@ -196,6 +196,18 @@ namespace Xamasoft.JsonClassGenerator
                 }
             }
 
+            type.Fields = jsonFields.Select(x => new FieldInfo(this, x.Key, x.Value, UsePascalCase, fieldExamples[x.Key])).ToArray();
+
+            foreach (var pair in type.Fields)
+            {
+                if (pair.MemberName == type.AssignedName)
+                {
+                    type.AssignName(type.AssignedName + "Info");
+                };
+            }
+
+            Types.Add(type);
+
             foreach (var field in jsonFields)
             {
                 var fieldType = field.Value;
@@ -214,7 +226,7 @@ namespace Xamasoft.JsonClassGenerator
                         }
                     }
 
-                    fieldType.AssignName(CreateUniqueClassName(field.Key));
+                    fieldType.AssignName(CreateUniqueClassName(field.Key, type.AssignedName));
                     GenerateClass(subexamples.ToArray(), fieldType);
                 }
 
@@ -247,21 +259,19 @@ namespace Xamasoft.JsonClassGenerator
                         }
                     }
 
-                    field.Value.InternalType.AssignName(CreateUniqueClassNameFromPlural(field.Key));
+                    field.Value.InternalType.AssignName(CreateUniqueClassNameFromPlural(field.Key, type.AssignedName));
                     GenerateClass(subexamples.ToArray(), field.Value.InternalType);
                 }
             }
 
-            type.Fields = jsonFields.Select(x => new FieldInfo(this, x.Key, x.Value, UsePascalCase, fieldExamples[x.Key])).ToArray();
-
-            Types.Add(type);
+           
 
         }
 
         public IList<JsonType> Types { get; private set; }
         private HashSet<string> Names = new HashSet<string>();
 
-        private string CreateUniqueClassName(string name)
+        private string CreateUniqueClassName(string name, string parent)
         {
             name = ToTitleCase(name);
 
@@ -269,18 +279,25 @@ namespace Xamasoft.JsonClassGenerator
             var i = 2;
             while (Names.Any(x => x.Equals(finalName, StringComparison.OrdinalIgnoreCase)))
             {
-                finalName = name + i.ToString();
-                i++;
+                if (parent != null && finalName!= parent + name)
+                {
+                    finalName = parent + name;
+                }
+                else
+                {
+                    finalName = name + i.ToString();
+                    i++;
+                }
             }
 
             Names.Add(finalName);
             return finalName;
         }
 
-        private string CreateUniqueClassNameFromPlural(string plural)
+        private string CreateUniqueClassNameFromPlural(string plural, string parent)
         {
             plural = ToTitleCase(plural);
-            return CreateUniqueClassName(pluralizationService.Singularize(plural));
+            return CreateUniqueClassName(pluralizationService.Singularize(plural), parent);
         }
 
 
